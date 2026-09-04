@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SkillSynth | ATS Resume Analyzer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+*{box-sizing:border-box;font-family:Inter,sans-serif}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#172554,#020617 58%);color:#e5e7eb;padding:28px}
+.wrapper{max-width:1200px;margin:auto;padding:2px;border-radius:28px;background:linear-gradient(120deg,#22d3ee,#a78bfa,#f472b6,#22d3ee);background-size:300% 300%;animation:glow 8s linear infinite}
+@keyframes glow{0%{background-position:0 50%}50%{background-position:100% 50%}100%{background-position:0 50%}}
+.container{background:rgba(2,6,23,.97);border-radius:27px;padding:46px}
+h1{text-align:center;font-size:42px;margin:0 0 8px;background:linear-gradient(90deg,#22d3ee,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{text-align:center;font-size:18px;color:#cbd5e1}.student{text-align:center;color:#94a3b8;font-size:13px;margin:9px 0 40px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:26px}.field label{display:block;font-weight:700;margin-bottom:10px}
+input,textarea{width:100%;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:white;border-radius:16px;padding:16px;outline:none}
+input{min-height:55px}textarea{min-height:190px;resize:vertical}input:focus,textarea:focus{border-color:#a78bfa}
+button{display:block;margin:32px auto 0;border:0;border-radius:50px;padding:16px 58px;font-size:16px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,#22d3ee,#a78bfa,#f472b6);color:#020617;box-shadow:0 0 35px rgba(167,139,250,.4)}
+button:disabled{opacity:.6;cursor:wait}.loading,.error{display:none;text-align:center;margin-top:24px}.loading{color:#c4b5fd}.error{padding:14px;border-radius:14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5}
+.spinner{width:38px;height:38px;border:4px solid rgba(255,255,255,.18);border-top-color:#a78bfa;border-radius:50%;margin:0 auto 12px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}.results{display:none;margin-top:48px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:22px}.card,.section{background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:26px}.section{margin-top:22px}
+.card h3,.section h3{margin-top:0}.score{font-size:42px;font-weight:800;background:linear-gradient(90deg,#22d3ee,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.bar{height:14px;background:rgba(255,255,255,.12);border-radius:20px;overflow:hidden;margin:15px 0}.fill{height:100%;width:0;background:linear-gradient(90deg,#22d3ee,#f472b6);transition:width 1s}
+.small{font-size:14px;line-height:1.8;color:#cbd5e1}.tags{display:flex;flex-wrap:wrap;gap:10px}.tag{padding:8px 13px;border-radius:30px;font-size:13px;font-weight:700}.match{background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.3);color:#67e8f9}.missing{background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.3);color:#f9a8d4}
+.feedback{padding:18px;border-radius:16px;background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.25);line-height:1.7}
+.roadmap-item{padding:16px;margin-top:12px;border-radius:15px;background:rgba(255,255,255,.04);border-left:3px solid #a78bfa}.roadmap-item strong{display:block;margin-bottom:5px}
+.priority{display:inline-block;padding:7px 14px;border-radius:30px;font-weight:800;margin-bottom:12px;background:rgba(167,139,250,.15);color:#c4b5fd}
+ul{line-height:1.8;color:#cbd5e1}.footer{text-align:center;color:#64748b;font-size:12px;margin-top:35px}
+@media(max-width:800px){body{padding:12px}.container{padding:28px 18px}h1{font-size:31px}.grid,.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrapper"><main class="container">
+<h1>SkillSynth</h1>
+<div class="subtitle">ATS Resume Analyzer & Career Copilot</div>
+<div class="student">Built for students and freshers • Resume-to-role skill intelligence</div>
+
+<div class="grid">
+  <div class="field">
+    <label for="resume">Upload Resume (PDF)</label>
+    <input id="resume" type="file" accept=".pdf,application/pdf">
+  </div>
+  <div class="field">
+    <label for="jobDescription">Target Job Description</label>
+    <textarea id="jobDescription" placeholder="Paste the job description here..."></textarea>
+  </div>
+</div>
+
+<button id="analyzeBtn" onclick="analyze()">Analyze Resume</button>
+<div class="loading" id="loading"><div class="spinner"></div>Analyzing your resume...</div>
+<div class="error" id="errorBox"></div>
+
+<section class="results" id="results">
+  <div class="cards">
+    <div class="card">
+      <h3>ATS Score</h3>
+      <div class="score" id="atsScore">0 / 100</div>
+      <div class="bar"><div class="fill" id="atsBar"></div></div>
+      <div class="small">Keyword alignment: <b id="keywordMatch">0%</b><br>Required skills found: <b id="skillsFound">0 / 0</b></div>
+    </div>
+    <div class="card">
+      <h3>Job Match</h3>
+      <div class="score" id="matchScore">0%</div>
+      <div class="bar"><div class="fill" id="matchBar"></div></div>
+      <div class="small">Matched skills: <b id="matchedCount">0</b><br>Skill gaps: <b id="missingCount">0</b></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>🟢 Matched Skills</h3>
+    <div class="tags" id="matchedSkills"></div>
+  </div>
+
+  <div class="section">
+    <h3>🔴 Missing Skills</h3>
+    <div class="tags" id="missingSkills"></div>
+  </div>
+
+  <div class="section">
+    <h3>🧠 Smart Resume Feedback</h3>
+    <div class="feedback" id="smartFeedback"></div>
+  </div>
+
+  <div class="section">
+    <h3>📚 Skill Gap Learning Roadmap</h3>
+    <div id="roadmap"></div>
+  </div>
+
+  <div class="section">
+    <h3>🎯 Resume Improvement Suggestions</h3>
+    <ul>
+      <li>Use relevant job-specific keywords naturally and only when they accurately represent your experience.</li>
+      <li>Quantify project outcomes with numbers, speed, scale or measurable impact where possible.</li>
+      <li>Place the most relevant technical skills and projects where recruiters can find them quickly.</li>
+      <li>Keep formatting simple, consistent and easy for ATS software to parse.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>⚡ Readiness Priority</h3>
+    <div class="priority" id="priority"></div>
+    <div class="small" id="priorityMessage"></div>
+  </div>
+
+  <div class="footer">SkillSynth • Student/Fresher Resume Intelligence</div>
+</section>
+</main></div>
+
+<script>
+async function analyze(){
+  const resume=document.getElementById("resume").files[0];
+  const jd=document.getElementById("jobDescription").value.trim();
+  const error=document.getElementById("errorBox");
+  const loading=document.getElementById("loading");
+  const results=document.getElementById("results");
+  const btn=document.getElementById("analyzeBtn");
+
+  error.style.display="none"; results.style.display="none";
+
+  if(!resume){ error.textContent="Please upload your resume PDF."; error.style.display="block"; return; }
+  if(!resume.name.toLowerCase().endsWith(".pdf")){ error.textContent="Please upload a PDF resume."; error.style.display="block"; return; }
+  if(!jd){ error.textContent="Please enter a job description."; error.style.display="block"; return; }
+
+  const form=new FormData();
+  form.append("resume",resume);
+  form.append("job_desc",jd);
+
+  loading.style.display="block"; btn.disabled=true; btn.textContent="Analyzing...";
+
+  try{
+    const response=await fetch("/analyze",{method:"POST",body:form});
+    const data=await response.json();
+    if(!response.ok) throw new Error(data.error || "Analysis failed.");
+
+    document.getElementById("atsScore").textContent=data.ats_score+" / 100";
+    document.getElementById("matchScore").textContent=data.match_percentage+"%";
+    document.getElementById("keywordMatch").textContent=data.match_percentage+"%";
+    document.getElementById("atsBar").style.width=data.ats_score+"%";
+    document.getElementById("matchBar").style.width=data.match_percentage+"%";
+
+    const matched=data.matched_skills||[];
+    const missing=data.missing_keywords||[];
+    document.getElementById("matchedCount").textContent=matched.length;
+    document.getElementById("missingCount").textContent=missing.length;
+    document.getElementById("skillsFound").textContent=matched.length+" / "+(matched.length+missing.length);
+
+    renderTags("matchedSkills",matched,"match","No required skills matched.");
+    renderTags("missingSkills",missing,"missing","No detected skill gaps for this job.");
+
+    document.getElementById("smartFeedback").innerHTML=
+      "<strong>"+escapeHtml(data.feedback_title)+"!</strong><br>"+escapeHtml(data.priority_message);
+
+    const roadmap=document.getElementById("roadmap");
+    roadmap.innerHTML="";
+    if(!data.roadmap.length){
+      roadmap.innerHTML='<div class="small">🎉 No missing skills were detected. Focus on projects and interview preparation.</div>';
+    }else{
+      data.roadmap.forEach(item=>{
+        const div=document.createElement("div");
+        div.className="roadmap-item";
+        div.innerHTML="<strong>"+escapeHtml(item.skill.toUpperCase())+"</strong><span>"+escapeHtml(item.recommendation)+"</span>";
+        roadmap.appendChild(div);
+      });
+    }
+
+    document.getElementById("priority").textContent=data.priority+" Priority";
+    document.getElementById("priorityMessage").textContent=data.priority_message;
+
+    loading.style.display="none"; btn.disabled=false; btn.textContent="Analyze Again";
+    results.style.display="block";
+    results.scrollIntoView({behavior:"smooth"});
+  }catch(err){
+    loading.style.display="none"; btn.disabled=false; btn.textContent="Analyze Resume";
+    error.textContent=err.message||"Something went wrong.";
+    error.style.display="block";
+  }
+}
+
+function renderTags(id,items,cls,empty){
+  const box=document.getElementById(id);
+  box.innerHTML="";
+  if(!items.length){box.innerHTML="<span class='small'>"+empty+"</span>";return;}
+  items.forEach(skill=>{
+    const tag=document.createElement("span");
+    tag.className="tag "+cls;
+    tag.textContent=skill;
+    box.appendChild(tag);
+  });
+}
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
+</script>
+</body>
+</html>
